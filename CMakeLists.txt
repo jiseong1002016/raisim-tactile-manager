@@ -46,6 +46,10 @@ if(RAISIM_TACTILE_BUILD_EXAMPLES)
   add_executable(raisim_tactile_bolt_wrench_minimal
     examples/bolt_wrench_minimal/main.cpp
   )
+  target_compile_definitions(raisim_tactile_bolt_wrench_minimal
+    PRIVATE
+      RAISIM_TACTILE_EXAMPLE_MESH_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/bolt_wrench_minimal/rsc/meshes/wrench_plate.obj"
+  )
   target_link_libraries(raisim_tactile_bolt_wrench_minimal
     PRIVATE raisim_tactile_manager
   )

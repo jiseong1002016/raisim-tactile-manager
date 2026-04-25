@@ -6,9 +6,12 @@
 #include "raisim_tactile/SensorGrid.hpp"
 
 int main(int argc, char** argv) {
+#ifndef RAISIM_TACTILE_EXAMPLE_MESH_PATH
+#define RAISIM_TACTILE_EXAMPLE_MESH_PATH "examples/bolt_wrench_minimal/rsc/meshes/wrench_plate.obj"
+#endif
   const std::string mesh_path = argc > 1
       ? argv[1]
-      : "examples/bolt_wrench_minimal/rsc/meshes/wrench_plate.obj";
+      : RAISIM_TACTILE_EXAMPLE_MESH_PATH;
 
   raisim_tactile::MeshSurface mesh;
   if (!mesh.loadObj(mesh_path, 1.0)) {
