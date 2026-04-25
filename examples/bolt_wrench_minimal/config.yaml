@@ -1,0 +1,21 @@
+tactile:
+  left_pads:
+    - link: left_tactile_pad
+  right_pads:
+    - link: right_tactile_pad
+  grid:
+    preset: bolt_wrench_10x10
+    rows: 10
+    cols: 10
+    protrusion_m: 0.003
+    row_spacing: 0.0075
+    col_spacing: 0.01352
+
+target:
+  link: target
+  mesh: rsc/meshes/wrench_plate.obj
+  mesh_scale: 1.0
+
+hybrid_penetration:
+  mu: 0.4
+  vtan_threshold: 1.0e-4
