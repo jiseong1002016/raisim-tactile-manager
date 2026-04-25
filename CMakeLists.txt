@@ -20,6 +20,10 @@ add_library(raisim_tactile_manager
   src/SensorGrid.cpp
 )
 
+set_target_properties(raisim_tactile_manager PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+)
+
 target_include_directories(raisim_tactile_manager
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
