@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(CMakePackageConfigHelpers)
+
 option(RAISIM_TACTILE_BUILD_EXAMPLES "Build examples" ON)
 option(RAISIM_TACTILE_BUILD_TESTS "Build tests" ON)
 
@@ -62,3 +64,26 @@ install(TARGETS raisim_tactile_manager
 )
 
 install(DIRECTORY include/ DESTINATION include)
+
+install(EXPORT raisim_tactile_managerTargets
+  NAMESPACE raisim_tactile::
+  DESTINATION lib/cmake/raisim_tactile_manager
+)
+
+configure_package_config_file(
+  cmake/raisim_tactile_managerConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/raisim_tactile_managerConfig.cmake
+  INSTALL_DESTINATION lib/cmake/raisim_tactile_manager
+)
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/raisim_tactile_managerConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/raisim_tactile_managerConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/raisim_tactile_managerConfigVersion.cmake
+  DESTINATION lib/cmake/raisim_tactile_manager
+)
