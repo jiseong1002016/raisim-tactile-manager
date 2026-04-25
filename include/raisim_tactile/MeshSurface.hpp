@@ -37,6 +37,9 @@ class MeshSurface {
   static double pointTriangleSignedDistance(const Eigen::Vector3d& point,
                                             const Triangle& tri,
                                             Eigen::Vector3d& closest);
+  static Eigen::Vector3d closestPointOnSegment(const Eigen::Vector3d& a,
+                                               const Eigen::Vector3d& b,
+                                               const Eigen::Vector3d& point);
 
   std::size_t vertex_count_ = 0;
   std::vector<Triangle> triangles_;

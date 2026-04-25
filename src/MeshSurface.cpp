@@ -93,6 +93,20 @@ MeshSurfaceQuery MeshSurface::closestPoint(const Eigen::Vector3d& point) const {
   return out;
 }
 
+Eigen::Vector3d MeshSurface::closestPointOnSegment(const Eigen::Vector3d& a,
+                                                   const Eigen::Vector3d& b,
+                                                   const Eigen::Vector3d& point) {
+  const double ab0 = b.x() - a.x();
+  const double ab1 = b.y() - a.y();
+  const double ab2 = b.z() - a.z();
+  const double ap0 = point.x() - a.x();
+  const double ap1 = point.y() - a.y();
+  const double ap2 = point.z() - a.z();
+  const double denom = std::max(ab0 * ab0 + ab1 * ab1 + ab2 * ab2, 1.0e-15);
+  const double t = std::clamp((ab0 * ap0 + ab1 * ap1 + ab2 * ap2) / denom, 0.0, 1.0);
+  return {a.x() + t * ab0, a.y() + t * ab1, a.z() + t * ab2};
+}
+
 double MeshSurface::pointTriangleSignedDistance(const Eigen::Vector3d& point,
                                                 const Triangle& tri,
                                                 Eigen::Vector3d& closest) {
@@ -115,17 +129,9 @@ double MeshSurface::pointTriangleSignedDistance(const Eigen::Vector3d& point,
   if (s >= 0.0 && t >= 0.0 && s + t <= 1.0) {
     closest = tri.v0 + s * e0 + t * e1;
   } else {
-    auto clampEdge = [](const Eigen::Vector3d& a,
-                        const Eigen::Vector3d& b,
-                        const Eigen::Vector3d& pt) {
-      const Eigen::Vector3d ab = b - a;
-      const double tc = std::clamp(
-          ab.dot(pt - a) / std::max(ab.squaredNorm(), 1.0e-15), 0.0, 1.0);
-      return a + tc * ab;
-    };
-    const Eigen::Vector3d c0 = clampEdge(tri.v0, tri.v1, point);
-    const Eigen::Vector3d c1 = clampEdge(tri.v1, tri.v2, point);
-    const Eigen::Vector3d c2 = clampEdge(tri.v2, tri.v0, point);
+    const Eigen::Vector3d c0 = closestPointOnSegment(tri.v0, tri.v1, point);
+    const Eigen::Vector3d c1 = closestPointOnSegment(tri.v1, tri.v2, point);
+    const Eigen::Vector3d c2 = closestPointOnSegment(tri.v2, tri.v0, point);
     const double d0 = (point - c0).squaredNorm();
     const double d1 = (point - c1).squaredNorm();
     const double d2 = (point - c2).squaredNorm();
