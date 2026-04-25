@@ -22,6 +22,7 @@ add_library(raisim_tactile_manager
 
 set_target_properties(raisim_tactile_manager PROPERTIES
   POSITION_INDEPENDENT_CODE ON
+  EXPORT_NAME manager
 )
 
 target_include_directories(raisim_tactile_manager
