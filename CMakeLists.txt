@@ -63,6 +63,21 @@ if(RAISIM_TACTILE_BUILD_TESTS)
     PRIVATE raisim_tactile_manager
   )
   add_test(NAME raisim_tactile_core_test COMMAND raisim_tactile_core_test)
+
+  add_executable(raisim_tactile_contact_collector_world_test
+    tests/test_contact_collector_world.cpp
+  )
+  target_compile_definitions(raisim_tactile_contact_collector_world_test
+    PRIVATE
+      RAISIM_TACTILE_EXAMPLE_GRIPPER_URDF="${CMAKE_CURRENT_SOURCE_DIR}/examples/bolt_wrench_minimal/rsc/urdf/tactile_gripper_example.urdf"
+  )
+  target_link_libraries(raisim_tactile_contact_collector_world_test
+    PRIVATE raisim_tactile_manager
+  )
+  add_test(
+    NAME raisim_tactile_contact_collector_world_test
+    COMMAND raisim_tactile_contact_collector_world_test
+  )
 endif()
 
 install(TARGETS raisim_tactile_manager
