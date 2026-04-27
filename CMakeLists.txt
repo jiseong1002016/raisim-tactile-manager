@@ -78,6 +78,13 @@ if(RAISIM_TACTILE_BUILD_TESTS)
     NAME raisim_tactile_contact_collector_world_test
     COMMAND raisim_tactile_contact_collector_world_test
   )
+
+  add_executable(raisim_tactile_hybrid_benchmark
+    tests/benchmark_hybrid_tactile.cpp
+  )
+  target_link_libraries(raisim_tactile_hybrid_benchmark
+    PRIVATE raisim_tactile_manager
+  )
 endif()
 
 install(TARGETS raisim_tactile_manager
