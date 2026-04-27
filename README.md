@@ -64,6 +64,7 @@ auto right_grid = raisim_tactile::SensorGrid::boltWrenchPad(false, 0.003);
 raisim_tactile::HybridPenetrationTactileConfig cfg;
 cfg.mu = 0.4;
 cfg.protrusion_m = 0.003;
+cfg.max_cells_per_contact_hint = 25;
 
 raisim_tactile::HybridPenetrationTactile tactile(cfg, &mesh, &left_grid, &right_grid);
 
@@ -74,6 +75,11 @@ std::vector<raisim_tactile::HybridPadState> right_pads;
 auto result = tactile.compute(target, left_pads, right_pads);
 Eigen::VectorXd flat_600 = result.force_grid_flat;
 ```
+
+When `HybridPadState::contact_points_W` contains RaiSim contact positions for a pad,
+the tactile engine only runs target mesh queries for nearby cells. If no contact point
+hint is available, it falls back to the full grid so existing integrations keep the
+same behavior.
 
 ## URDF Requirements
 

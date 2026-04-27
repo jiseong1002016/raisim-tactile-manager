@@ -18,6 +18,14 @@ void writeTriangleObj(const std::string& path) {
   out << "f 1//1 2//1 3//1\n";
 }
 
+int activeCellCount(const Eigen::VectorXd& flat) {
+  int active = 0;
+  for (int i = 0; i < 200; ++i) {
+    if (flat.segment<3>(i * 3).norm() > 1.0e-9) ++active;
+  }
+  return active;
+}
+
 }  // namespace
 
 int main() {
@@ -53,6 +61,23 @@ int main() {
   assert(result.force_grid_flat.norm() > 0.0);
   assert(result.left_contact_points_W.size() == 100);
   assert(result.right_contact_points_W.size() == 100);
+  assert(result.mesh_query_count == 100);
+
+  raisim_tactile::HybridPenetrationTactileConfig sparse_cfg = cfg;
+  sparse_cfg.max_cells_per_contact_hint = 9;
+  raisim_tactile::HybridPenetrationTactile sparse_tactile(
+      sparse_cfg, &mesh, &left_grid, &right_grid);
+
+  raisim_tactile::HybridPadState hinted_pad = pad;
+  hinted_pad.contact_points_W.push_back(
+      pad.position_W + pad.orientation_W * left_grid.cellsLocal()[54]);
+
+  const auto sparse_result = sparse_tactile.compute(target, {hinted_pad}, {});
+  assert(sparse_result.force_grid_flat.size() == 600);
+  assert(sparse_result.force_grid_flat.allFinite());
+  assert(sparse_result.force_grid_flat.norm() > 0.0);
+  assert(sparse_result.mesh_query_count <= 9);
+  assert(activeCellCount(sparse_result.force_grid_flat) <= 9);
 
   std::cout << "raisim_tactile_core_test OK\n";
   return 0;

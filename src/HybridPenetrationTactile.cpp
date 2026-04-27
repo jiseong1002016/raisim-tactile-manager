@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace raisim_tactile {
 
@@ -31,13 +32,62 @@ HybridTactileResult HybridPenetrationTactile::compute(
   if (target_mesh_ == nullptr || target_mesh_->empty()) return result;
   if (left_grid_ != nullptr) {
     accumulateSide(target, left_pads, *left_grid_, 0,
-                   result.left_contact_points_W, result.force_grid_flat);
+                   result.left_contact_points_W, result.force_grid_flat,
+                   result.mesh_query_count);
   }
   if (right_grid_ != nullptr) {
     accumulateSide(target, right_pads, *right_grid_, 300,
-                   result.right_contact_points_W, result.force_grid_flat);
+                   result.right_contact_points_W, result.force_grid_flat,
+                   result.mesh_query_count);
   }
   return result;
+}
+
+std::vector<int> HybridPenetrationTactile::selectCandidateCells(
+    const HybridPadState& pad,
+    const SensorGrid& grid) const {
+  const auto& cells_local = grid.cellsLocal();
+  std::vector<int> indices;
+  const int cell_count = static_cast<int>(cells_local.size());
+  if (cell_count <= 0) return indices;
+
+  const int max_cells = config_.max_cells_per_contact_hint;
+  if (!config_.use_contact_hint_sparse_cells ||
+      max_cells <= 0 ||
+      max_cells >= cell_count ||
+      pad.contact_points_W.empty()) {
+    indices.reserve(static_cast<std::size_t>(cell_count));
+    for (int i = 0; i < cell_count; ++i) indices.push_back(i);
+    return indices;
+  }
+
+  std::vector<bool> selected(static_cast<std::size_t>(cell_count), false);
+  std::vector<std::pair<double, int>> distances;
+  distances.reserve(static_cast<std::size_t>(cell_count));
+  const Eigen::Matrix3d R_pad_inv = pad.orientation_W.transpose();
+  const int k = std::min(max_cells, cell_count);
+  for (const auto& contact_point_W : pad.contact_points_W) {
+    if (!contact_point_W.allFinite()) continue;
+    const Eigen::Vector3d contact_local = R_pad_inv * (contact_point_W - pad.position_W);
+
+    distances.clear();
+    for (int i = 0; i < cell_count; ++i) {
+      distances.emplace_back((cells_local[i] - contact_local).squaredNorm(), i);
+    }
+    std::partial_sort(distances.begin(), distances.begin() + k, distances.end());
+    for (int i = 0; i < k; ++i) {
+      selected[static_cast<std::size_t>(distances[static_cast<std::size_t>(i)].second)] = true;
+    }
+  }
+
+  for (int i = 0; i < cell_count; ++i) {
+    if (selected[static_cast<std::size_t>(i)]) indices.push_back(i);
+  }
+  if (indices.empty()) {
+    indices.reserve(static_cast<std::size_t>(cell_count));
+    for (int i = 0; i < cell_count; ++i) indices.push_back(i);
+  }
+  return indices;
 }
 
 void HybridPenetrationTactile::accumulateSide(
@@ -46,7 +96,8 @@ void HybridPenetrationTactile::accumulateSide(
     const SensorGrid& grid,
     int flat_offset,
     std::vector<Eigen::Vector3d>& contact_points_W,
-    Eigen::VectorXd& force_grid_flat) const {
+    Eigen::VectorXd& force_grid_flat,
+    std::size_t& mesh_query_count) const {
   const auto& cells_local = grid.cellsLocal();
   if (cells_local.size() < 100) return;
 
@@ -56,27 +107,32 @@ void HybridPenetrationTactile::accumulateSide(
   for (auto& p : point_sum) p.setZero();
 
   for (const auto& pad : pads) {
+    if (pad.total_force_W.norm() < 1.0e-9) continue;
+    const std::vector<int> candidate_cells = selectCandidateCells(pad, grid);
+    if (candidate_cells.empty()) continue;
+
     std::array<double, 100> pen{};
     std::array<Eigen::Vector3d, 100> surface_normal{};
     std::fill(pen.begin(), pen.end(), 0.0);
     for (auto& n : surface_normal) n.setZero();
     double sum_pen = 0.0;
 
-    for (int i = 0; i < 100; ++i) {
+    for (const int i : candidate_cells) {
       const Eigen::Vector3d cell_W = pad.position_W + pad.orientation_W * cells_local[i];
       const Eigen::Vector3d cell_target = R_w_inv * (cell_W - target.position_W);
       const auto surface_query = target_mesh_->closestPoint(cell_target);
+      ++mesh_query_count;
       const double depth = config_.protrusion_m - surface_query.abs_distance;
       pen[i] = std::max(0.0, depth);
       surface_normal[i] = surface_query.normal;
       sum_pen += pen[i];
     }
 
-    if (sum_pen < 1.0e-12 || pad.total_force_W.norm() < 1.0e-9) continue;
+    if (sum_pen < 1.0e-12) continue;
 
     const double total_force_mag = pad.total_force_W.norm();
     const Eigen::Vector3d v_rel_W = pad.linear_velocity_W - target.linear_velocity_W;
-    for (int i = 0; i < 100; ++i) {
+    for (const int i : candidate_cells) {
       if (pen[i] <= 0.0 || surface_normal[i].squaredNorm() < 1.0e-24) continue;
       const double weight = pen[i] / sum_pen;
       const double cell_force_mag = total_force_mag * weight;

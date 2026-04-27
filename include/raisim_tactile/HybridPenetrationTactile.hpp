@@ -12,6 +12,8 @@ struct HybridPenetrationTactileConfig {
   double mu = 0.4;
   double protrusion_m = 0.003;
   double vtan_threshold = 1.0e-4;
+  bool use_contact_hint_sparse_cells = true;
+  int max_cells_per_contact_hint = 25;
 };
 
 struct HybridTargetState {
@@ -25,12 +27,14 @@ struct HybridPadState {
   Eigen::Vector3d position_W = Eigen::Vector3d::Zero();
   Eigen::Vector3d linear_velocity_W = Eigen::Vector3d::Zero();
   Eigen::Vector3d total_force_W = Eigen::Vector3d::Zero();
+  std::vector<Eigen::Vector3d> contact_points_W;
 };
 
 struct HybridTactileResult {
   Eigen::VectorXd force_grid_flat = Eigen::VectorXd::Zero(600);
   std::vector<Eigen::Vector3d> left_contact_points_W;
   std::vector<Eigen::Vector3d> right_contact_points_W;
+  std::size_t mesh_query_count = 0;
 };
 
 class HybridPenetrationTactile {
@@ -50,7 +54,11 @@ class HybridPenetrationTactile {
                       const SensorGrid& grid,
                       int flat_offset,
                       std::vector<Eigen::Vector3d>& contact_points_W,
-                      Eigen::VectorXd& force_grid_flat) const;
+                      Eigen::VectorXd& force_grid_flat,
+                      std::size_t& mesh_query_count) const;
+
+  std::vector<int> selectCandidateCells(const HybridPadState& pad,
+                                        const SensorGrid& grid) const;
 
   HybridPenetrationTactileConfig config_;
   const MeshSurface* target_mesh_ = nullptr;
